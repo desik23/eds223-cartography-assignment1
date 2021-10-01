@@ -11,36 +11,60 @@ library(spData)
 library(tidyverse)
 library(sf)
 library(tmap)
+library(here)
+library(janitor)
+library(spData)
+library(tmaptools)
+library(basemaps)
+library(leaflet)
 ```
 
-## R Markdown
-
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
 ```{r coffee}
-# found by searching for "global coffee data"
-u = "http://www.ico.org/prices/m1-exports.pdf"
-download.file(u, "data.pdf", mode = "wb")
-#pdftables::convert_pdf(input_file = "data.pdf", output_file = "coffee-data-messy.csv", api_key = "7he17mywbvwi")
-d = read_csv("coffee-data-messy.csv")
+coffee2021 <- read.csv(here("world_coffee_july20_21.csv")) %>% 
+  clean_names() %>% 
+  select("name", "production_july_2020", "production_july_2021")
 #file.remove("coffee-data-messy.csv")
 #file.remove("data.pdf")
 coffee_data = slice(d, -c(1:9)) %>% 
-  select(name_long = 1, coffee_production_2016 = 2, coffee_production_2017 = 3) %>% 
-  filter(!is.na(coffee_production_2016)) %>% 
+  select(name_long = 1, coffee_production_2020 = 2, coffee_production_2021 = 3) %>% 
+  filter(!is.na(coffee_production_2020)) %>% 
   mutate_at(2:3, str_replace, " ", "") %>% 
   mutate_at(2:3, as.integer)
+
 world_coffee = left_join(world, coffee_data)
-plot(world_coffee[c("coffee_production_2016", "coffee_production_2017")])
+plot(world_coffee[c("coffee_production_2020", "coffee_production_2021")])
 b = c(0, 500, 1000, 2000, 3000)
+```
+
+```{r coffee}
+ tm_basemap(leaflet::providers$OpenStreetMap) +
+  tm_shape(world_coffee) +
+  tm_fill("coffee_production_2021", title = "Thousand 60kg bags", breaks = b, textNA = "No data", colorNA = NULL) +
+  tm_scale_bar() +
+  tmap_mode("")
+```
 
 
-tm_shape(world_coffee) +
-  tm_fill("coffee_production_2017", title = "Thousand 60kg bags", breaks = b,
-          textNA = "No data", colorNA = NULL)
-tmap_mode("view") # for an interactive version
+```{r coffee}
+world_coffee <- leaflet() %>% setView(lng = -71.0589, lat = 42.3601, zoom = 12)
+world_coffee %>% addTiles()
+```
+
+
+```{r coffee}
+tm_shape(nz) +
+  tm_polygons(
+    "Thousand 60kg bags",
+    palette = "Blues",
+    n = 100,) + tm_layout(basemaps = leaflet::providers$OpenStreetMap)
+
+tmap_mode("plot") # for an interactive version
+```
+
+```{r}
+data(NLD_muni) 
+osm_NLD <- read_osm(NLD_muni, ext=1.1)
+tm_shape(osm_NLD) + tm_rgb()
 ```
 
 ## Including Plots
